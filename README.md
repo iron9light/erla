@@ -14,6 +14,8 @@ erlang code:
       end,
       io:format("got other: ~p", [Number]).
 
+    Pid = spawn(run)
+
 erla code:
 
     val actor = new Actor with ErlActor {
@@ -28,4 +30,4 @@ erla code:
         }
         println("got other: %s" format other)
       }
-    }
+    }.start()

@@ -12,7 +12,7 @@ erlang code:
       Other = receive
         X -> X
       end,
-      io:format("got other: ~p", [Number]).
+      io:format("got other: ~p", [Other]).
 
     Pid = spawn(run)
 

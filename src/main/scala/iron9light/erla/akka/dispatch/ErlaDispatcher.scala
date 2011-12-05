@@ -21,7 +21,7 @@ trait ErlaDispatcher {self: ExecutorBasedEventDrivenDispatcher =>
 //        @inline
 //        final def dispatcher = self
 //      }
-      throw new RuntimeException("Do not implemente.")
+      throw new UnsupportedOperationException("Not implemented.")
   }
 
 }

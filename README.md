@@ -31,3 +31,19 @@ erla code:
         println("got other: %s" format other)
       }
     }.start()
+
+erla(akka version) code:
+
+    val actor = Actor.actorOf(new ErlActor {
+      def act() = {
+        val number = react {
+          case i: Int => i
+          case s: String => s.toInt
+        }
+        println("got int: %s" format number)
+        val other = react {
+          case x => x
+        }
+        println("got other: %s" format other)
+      }
+    }).start()

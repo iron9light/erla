@@ -1,7 +1,8 @@
 package iron9light.erla
 
 import util.continuations.{cpsParam, shift, reset}
-import actors.Actor
+import actors.{CanReply, Actor}
+import java.lang.Object
 
 /**
  * @author il
@@ -45,4 +46,26 @@ trait ErlActor {
       actX()
     }
   }
+
+  def await[T](future: Responder[T]): T@cpsParam[Unit, Nothing] = {
+    val o = new Object
+    future.respond(x => this ! (o, x)) // todo: It not work
+    reactX {
+      case (`o`, x: T) => x
+    }
+  }
+
+  class CanReplyAssoc[T, R](val canReply: CanReply[T, R]) {
+    def !!!(msg: T): T@cpsParam[Unit, Nothing] = {
+      val o = new Object
+      canReply.!!(msg, {
+        case x => self ! (o, x)
+      })
+      reactX {
+        case (`o`, x: T) => x
+      }
+    }
+  }
+
+  implicit def convert[T, R](canReply: CanReply[T, R]) = new CanReplyAssoc(canReply)
 }

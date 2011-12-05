@@ -1,4 +1,4 @@
-package iron9light.erla
+package iron9light.erla.scala
 
 import util.continuations.{cpsParam, shift, reset}
 import actors.{CanReply, Actor}

@@ -14,12 +14,12 @@ trait ErlActor extends Actor {
 
   def react[T](handler: PartialFunction[Any, T]): T@cpsParam[Unit, Unit] = {
     shift[T, Unit, Unit] {
-      fun: (T => Unit) => {
+      cont: (T => Unit) => {
         become(new PartialFunction[Any, Unit] {
           def isDefinedAt(x: Any) = handler.isDefinedAt(x)
 
           def apply(x: Any) {
-            fun(handler(x))
+            cont(handler(x))
           }
         })
       }
@@ -28,10 +28,10 @@ trait ErlActor extends Actor {
 
   def act(): Unit@cpsParam[Unit, Unit]
 
-  private object spawn
+  private object Spawn
 
   def receive = {
-    case `spawn` =>
+    case `Spawn` =>
       reset[Unit, Unit] {
         act()
         self.stop()
@@ -40,6 +40,6 @@ trait ErlActor extends Actor {
 
   override def preStart() {
     super.preStart()
-    self ! spawn
+    self ! Spawn
   }
 }

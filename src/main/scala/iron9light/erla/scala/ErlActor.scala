@@ -13,12 +13,12 @@ trait ErlActor {
   self: Actor =>
   def reactX[T](handler: PartialFunction[Any, T]): T@cpsParam[Unit, Nothing] = {
     shift[T, Unit, Nothing] {
-      fun: (T => Unit) => {
+      cont: (T => Unit) => {
         react(new PartialFunction[Any, Unit] {
           def isDefinedAt(x: Any) = handler.isDefinedAt(x)
 
           def apply(x: Any) {
-            fun(handler(x))
+            cont(handler(x))
           }
         })
       }
@@ -27,12 +27,12 @@ trait ErlActor {
 
   def reactWithinX[T](msec: Long)(handler: PartialFunction[Any, T]): T@cpsParam[Unit, Nothing] = {
     shift[T, Unit, Nothing] {
-      fun: (T => Unit) => {
+      cont: (T => Unit) => {
         reactWithin(msec)(new PartialFunction[Any, Unit] {
           def isDefinedAt(x: Any) = handler.isDefinedAt(x)
 
           def apply(x: Any) {
-            fun(handler(x))
+            cont(handler(x))
           }
         })
       }

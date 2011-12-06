@@ -3,6 +3,7 @@ package iron9light.erla.akka
 import akka.actor.Actor
 import dispatch.ErlaDispatchers
 import util.continuations.{cpsParam, shift, reset}
+import akka.dispatch.Future
 
 /**
  * @author il
@@ -41,5 +42,15 @@ trait ErlActor extends Actor {
   override def preStart() {
     super.preStart()
     self ! Spawn
+  }
+
+  def await[T](future: Future[T]): T@cpsParam[Unit, Unit] = {
+    val o = new AnyRef
+    future.onResult {
+      case x => self !(o, x)
+    } // todo: support onException & onTimeout
+    react {
+      case (`o`, x: T) => x
+    }
   }
 }

@@ -41,4 +41,32 @@ class ErlActorSuite extends FunSuite {
 
     Thread.sleep(100)
   }
+
+  test("try await") {
+    val actorB = Actor.actorOf(new Actor{
+      def receive = {
+        case x =>
+          self.reply(("got it", x))
+          println("actor B reply " + x)
+      }
+    }).start()
+
+    val actorA = Actor.actorOf(new ErlActor {
+      def act() = {
+        println("actor A started")
+        val msg = "hello"
+        val replied = await(actorB ? msg)
+        println(replied)
+        replied match {
+          case ("got it", `msg`) =>
+            println("works")
+          case x =>
+            println("wrong: " + x)
+        }
+      }
+    }).start()
+
+    Thread.sleep(100)
+    actorB.stop()
+  }
 }

@@ -9,5 +9,5 @@ import akka.dispatch.Dispatchers._
  */
 
 object ErlaDispatchers {
-  object globalErlaDispatcher extends ExecutorBasedEventDrivenDispatcher("global", THROUGHPUT, THROUGHPUT_DEADLINE_TIME_MILLIS, MAILBOX_TYPE) with ErlaDispatcher
+  object globalErlaDispatcher extends ExecutorBasedEventDrivenDispatcher("erla:global", THROUGHPUT, THROUGHPUT_DEADLINE_TIME_MILLIS, MAILBOX_TYPE) with ErlaDispatcher
 }

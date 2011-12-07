@@ -3,6 +3,7 @@ package iron9light.erla.akka.dispatch
 import akka.dispatch.{MessageInvocation, MessageQueue}
 import annotation.tailrec
 import java.util.{ArrayDeque, Deque}
+import akka.actor.AutoReceivedMessage
 
 
 /**
@@ -21,7 +22,9 @@ trait ErlaMailbox extends Deque[MessageInvocation] {self: Deque[MessageInvocatio
   final def dequeue(): MessageInvocation = {
     val message = this.pollLast()
     if (message ne null) {
-      if(message.receiver.isDefinedAt(message.message)) {
+      if (message.isInstanceOf[AutoReceivedMessage]) {
+        message
+      } else if(message.receiver.isDefinedAt(message.message)) {
         if(!stack.isEmpty) {
           this.addAll(stack)
           stack.clear()

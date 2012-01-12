@@ -52,11 +52,14 @@ trait ErlActor extends Actor {
       case Some(Left(e)) =>
         throw e
       case None =>
-        future.onResult {
-          case x => self !(o, x)
-        } // todo: support onException & onTimeout
+        future.onComplete {
+          x => self !(o, x.value.get)
+        }
         react {
-          case (`o`, x: T) => x
+          case (`o`, Right(x: T)) =>
+            x
+          case (`o`, Left(e: Throwable)) =>
+            throw e
         }
     }
   }

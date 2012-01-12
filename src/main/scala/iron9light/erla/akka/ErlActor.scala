@@ -1,7 +1,7 @@
 package iron9light.erla.akka
 
 import akka.actor.Actor
-import util.continuations.{cpsParam, shift, reset}
+import util.continuations._
 import akka.dispatch.Future
 
 /**
@@ -13,7 +13,7 @@ trait ErlActor extends Actor {
   // todo: set dispatcher
   // this.context.dispatcher = ErlaDispatcher
 
-  def react[T](handler: PartialFunction[Any, T]): T@cpsParam[Unit, Unit] = {
+  def react[T](handler: PartialFunction[Any, T]): T@suspendable = {
     shift[T, Unit, Unit] {
       cont: (T => Unit) => {
         context.become(new PartialFunction[Any, Unit] {
@@ -27,7 +27,7 @@ trait ErlActor extends Actor {
     }
   }
 
-  def act(): Unit@cpsParam[Unit, Unit]
+  def act(): Unit@suspendable
 
   private object Spawn
 
@@ -44,14 +44,13 @@ trait ErlActor extends Actor {
     self ! Spawn
   }
 
-  def await[T](future: Future[T]): T@cpsParam[Unit, Unit] = {
+  def await[T](future: Future[T]): T@suspendable = {
     val o = new AnyRef
     future.value match {
       case Some(Right(x)) =>
-        shift[T, Unit, Unit] {
-          cont => cont(x)
-        }
-      case Some(Left(e)) => throw e
+        x
+      case Some(Left(e)) =>
+        throw e
       case None =>
         future.onSuccess {
           case x => self !(o, x)

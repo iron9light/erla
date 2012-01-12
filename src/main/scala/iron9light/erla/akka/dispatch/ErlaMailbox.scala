@@ -1,41 +1,53 @@
 package iron9light.erla.akka.dispatch
 
-import akka.dispatch.{MessageInvocation, MessageQueue}
 import annotation.tailrec
+import akka.dispatch._
 import java.util.{ArrayDeque, Deque}
-import akka.actor.AutoReceivedMessage
+import akka.actor.{ActorRef, ActorContext}
+import java.util.concurrent.ConcurrentLinkedDeque
 
 
 /**
  * @author il
- * @version 12/5/11 6:49 PM
  */
 
-trait ErlaMailbox extends Deque[MessageInvocation] {self: Deque[MessageInvocation] with MessageQueue =>
-  val stack = new ArrayDeque[MessageInvocation]
+case class ErlaMailbox() extends MailboxType {
+  override def create(receiver: ActorContext) = new CustomMailbox(receiver) with DequeBasedMessageQueue with UnboundedDequeMessageQueueSemantics with DefaultSystemMessageQueue {
+    final val deque: Deque[Envelope] = new ConcurrentLinkedDeque
 
-  @inline
-  final def enqueue(m: MessageInvocation) = this.addFirst(m)
+    final protected val stack = new ArrayDeque[Envelope]
+  }
+}
 
-  @inline
+trait DequeBasedMessageQueue extends MessageQueue {
+  def deque: Deque[Envelope]
+
+  protected def stack: Deque[Envelope]
+
+  def numberOfMessages = deque.size + stack.size
+
+  def hasMessages = !deque.isEmpty
+}
+
+trait UnboundedDequeMessageQueueSemantics extends DequeBasedMessageQueue {
+  final def enqueue(receiver: ActorRef, handle: Envelope): Unit = deque.addFirst(handle)
+
   @tailrec
-  final def dequeue(): MessageInvocation = {
-    val message = this.pollLast()
-    if (message ne null) {
-      if (message.isInstanceOf[AutoReceivedMessage]) {
-        message
-      } else if(message.receiver.isDefinedAt(message.message)) {
-        if(!stack.isEmpty) {
-          this.addAll(stack)
+  final def dequeue(): Envelope = {
+    val handle = deque.pollLast()
+    if (handle ne null) {
+      if (false) { // todo: if can handle it
+        if (!stack.isEmpty) {
+          deque.addAll(stack)
           stack.clear()
         }
-        message
+        handle
       } else {
-        stack.addFirst(message)
+        stack.addFirst(handle)
         this.dequeue()
       }
     } else {
-      message
+      handle
     }
   }
 }

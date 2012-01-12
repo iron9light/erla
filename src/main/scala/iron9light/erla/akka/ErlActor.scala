@@ -46,11 +46,20 @@ trait ErlActor extends Actor {
 
   def await[T](future: Future[T]): T@cpsParam[Unit, Unit] = {
     val o = new AnyRef
-    future.onResult {
-      case x => self !(o, x)
-    } // todo: support onException & onTimeout
-    react {
-      case (`o`, x: T) => x
+    future.value match {
+      case Some(Right(x)) =>
+        shift[T, Unit, Unit] {
+          _(x)
+        }
+      case Some(Left(e)) =>
+        throw e
+      case None =>
+        future.onResult {
+          case x => self !(o, x)
+        } // todo: support onException & onTimeout
+        react {
+          case (`o`, x: T) => x
+        }
     }
   }
 }

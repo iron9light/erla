@@ -1,5 +1,6 @@
 erlang code:
 
+```erlang
     run() ->
       Number = receive
         I when is_integer(I) ->
@@ -15,9 +16,11 @@ erlang code:
       io:format("got other: ~p", [Other]).
 
     Pid = spawn(run)
+```
 
 erla code:
 
+```scala
     val actor = new Actor with ErlActor {
       def actX() = {
         val number = reactX {
@@ -31,9 +34,11 @@ erla code:
         println("got other: %s" format other)
       }
     }.start()
+```
 
 erla(akka version) code:
 
+```scala
     val actor = Actor.actorOf(new ErlActor {
       def act() = {
         val number = react {
@@ -47,3 +52,4 @@ erla(akka version) code:
         println("got other: %s" format other)
       }
     }).start()
+```

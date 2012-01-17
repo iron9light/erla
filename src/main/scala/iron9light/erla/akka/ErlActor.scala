@@ -1,8 +1,8 @@
 package iron9light.erla.akka
 
-import akka.actor.Actor
 import util.continuations._
 import akka.dispatch.Future
+import akka.actor.Actor
 
 /**
  * @author il
@@ -10,9 +10,6 @@ import akka.dispatch.Future
  */
 
 trait ErlActor extends Actor {
-  // todo: set dispatcher
-  // this.context.dispatcher = ErlaDispatcher
-
   def react[T](handler: PartialFunction[Any, T]): T@suspendable = {
     shift[T, Unit, Unit] {
       cont: (T => Unit) => {
@@ -31,17 +28,14 @@ trait ErlActor extends Actor {
 
   private object Spawn
 
+  self ! Spawn
+
   def receive = {
     case `Spawn` =>
       reset[Unit, Unit] {
         act()
         context.stop(self)
       }
-  }
-
-  override def preStart() {
-    super.preStart()
-    self ! Spawn
   }
 
   def await[T](future: Future[T]): T@suspendable = {

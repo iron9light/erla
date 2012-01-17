@@ -3,7 +3,7 @@ package iron9light.erla.akka
 import org.scalatest.FunSuite
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import akka.actor.Actor
+import akka.actor.{Props, ActorSystem, Actor}
 
 /**
  * @author il
@@ -13,7 +13,8 @@ import akka.actor.Actor
 @RunWith(classOf[JUnitRunner])
 class ErlActorSuite extends FunSuite {
   test("smoking") {
-    val actor = Actor.actorOf(new ErlActor {
+    val system = ActorSystem("TestSystem")
+    val actor = system.actorOf(Props(new ErlActor {
       def act() = {
         val number = react {
           case i: Int =>
@@ -34,24 +35,27 @@ class ErlActorSuite extends FunSuite {
 
         println("got other: %s" format other)
       }
-    }).start()
+    }).withDispatcher("erla"))
 
     actor ! 2.0
     actor ! "1"
 
     Thread.sleep(100)
+    system.shutdown()
   }
 
   test("try await") {
-    val actorB = Actor.actorOf(new Actor{
+    val system = ActorSystem("TestSystem")
+    implicit val timeout = system.settings.ActorTimeout
+    val actorB = system.actorOf(Props(new Actor{
       def receive = {
         case x =>
-          self.reply(("got it", x))
+          sender ! ("got it", x)
           println("actor B reply " + x)
       }
-    }).start()
+    }))
 
-    val actorA = Actor.actorOf(new ErlActor {
+    val actorA = system.actorOf(Props(new ErlActor {
       def act() = {
         println("actor A started")
         val msg = "hello"
@@ -64,9 +68,9 @@ class ErlActorSuite extends FunSuite {
             println("wrong: " + x)
         }
       }
-    }).start()
+    }).withDispatcher("erla"))
 
     Thread.sleep(100)
-    actorB.stop()
+    system.shutdown()
   }
 }

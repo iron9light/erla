@@ -6,13 +6,14 @@ import java.util.{ArrayDeque, Deque}
 import java.util.concurrent.ConcurrentLinkedDeque
 import collection.immutable.Stack
 import akka.actor.{Actor, ActorRef, ActorContext}
+import com.typesafe.config.Config
 
 
 /**
  * @author il
  */
 
-case class ErlaMailbox() extends MailboxType {
+class ErlaMailbox(config: Config) extends MailboxType {
   override def create(receiver: ActorContext) = {
     try {
       val actorHack = receiver.self.asInstanceOf[ {
@@ -29,7 +30,7 @@ case class ErlaMailbox() extends MailboxType {
 
         final protected val stack = new ArrayDeque[Envelope]
 
-        private[this] val hotswap = actorHack.hotswap
+        def hotswap = actorHack.hotswap
         final protected def isDefinedAt(message: Any) = {
           if (hotswap.nonEmpty) {
             hotswap.head.isDefinedAt(message)

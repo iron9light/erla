@@ -3,8 +3,9 @@ package iron9light.erla.akka.dispatch
 import annotation.tailrec
 import akka.dispatch._
 import java.util.{ArrayDeque, Deque}
-import akka.actor.{ActorRef, ActorContext}
 import java.util.concurrent.ConcurrentLinkedDeque
+import collection.immutable.Stack
+import akka.actor.{Actor, ActorRef, ActorContext}
 
 
 /**
@@ -12,10 +13,34 @@ import java.util.concurrent.ConcurrentLinkedDeque
  */
 
 case class ErlaMailbox() extends MailboxType {
-  override def create(receiver: ActorContext) = new CustomMailbox(receiver) with DequeBasedMessageQueue with UnboundedDequeMessageQueueSemantics with DefaultSystemMessageQueue {
-    final val deque: Deque[Envelope] = new ConcurrentLinkedDeque
+  override def create(receiver: ActorContext) = {
+    try {
+      val actorHack = receiver.self.asInstanceOf[ {
+        def underlying: {
+          def hotswap: Stack[PartialFunction[Any, Unit]]
+          def actor: {
+            def receive: Actor.Receive
+          }
+        }
+      }].underlying
 
-    final protected val stack = new ArrayDeque[Envelope]
+      new CustomMailbox(receiver) with DequeBasedMessageQueue with UnboundedDequeMessageQueueSemantics with DefaultSystemMessageQueue {
+        final val deque: Deque[Envelope] = new ConcurrentLinkedDeque
+
+        final protected val stack = new ArrayDeque[Envelope]
+
+        private[this] val hotswap = actorHack.hotswap
+        final protected def isDefinedAt(message: Any) = {
+          if (hotswap.nonEmpty) {
+            hotswap.head.isDefinedAt(message)
+          } else {
+            actorHack.actor.receive.isDefinedAt(message)
+          }
+        }
+      }
+    } catch {
+      case _ => UnboundedMailbox().create(receiver)
+    }
   }
 }
 
@@ -36,7 +61,7 @@ trait UnboundedDequeMessageQueueSemantics extends DequeBasedMessageQueue {
   final def dequeue(): Envelope = {
     val handle = deque.pollLast()
     if (handle ne null) {
-      if (false) { // todo: if can handle it
+      if (isDefinedAt(handle.message)) {
         if (!stack.isEmpty) {
           deque.addAll(stack)
           stack.clear()
@@ -50,4 +75,6 @@ trait UnboundedDequeMessageQueueSemantics extends DequeBasedMessageQueue {
       handle
     }
   }
+  
+  protected def isDefinedAt(message: Any): Boolean
 }

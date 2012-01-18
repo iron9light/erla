@@ -5,8 +5,8 @@ import akka.dispatch._
 import java.util.{ArrayDeque, Deque}
 import java.util.concurrent.ConcurrentLinkedDeque
 import collection.immutable.Stack
-import akka.actor.{Actor, ActorRef, ActorContext}
 import com.typesafe.config.Config
+import akka.actor.{AutoReceivedMessage, Actor, ActorRef, ActorContext}
 
 
 /**
@@ -16,7 +16,7 @@ import com.typesafe.config.Config
 class ErlaMailbox(config: Config) extends MailboxType {
   override def create(receiver: ActorContext) = {
     try {
-      val actorHack = receiver.self.asInstanceOf[ {
+      def actorHack = receiver.self.asInstanceOf[ {
         def underlying: {
           def hotswap: Stack[PartialFunction[Any, Unit]]
           def actor: {
@@ -24,6 +24,7 @@ class ErlaMailbox(config: Config) extends MailboxType {
           }
         }
       }].underlying
+      actorHack
 
       new CustomMailbox(receiver) with DequeBasedMessageQueue with UnboundedDequeMessageQueueSemantics with DefaultSystemMessageQueue {
         final val deque: Deque[Envelope] = new ConcurrentLinkedDeque
@@ -60,20 +61,20 @@ trait UnboundedDequeMessageQueueSemantics extends DequeBasedMessageQueue {
 
   @tailrec
   final def dequeue(): Envelope = {
-    val handle = deque.pollLast()
-    if (handle ne null) {
-      if (isDefinedAt(handle.message)) {
+    deque.pollLast() match {
+      case null =>
+        null
+      case handle if handle.message.isInstanceOf[AutoReceivedMessage] =>
+        handle
+      case handle if isDefinedAt(handle.message) =>
         if (!stack.isEmpty) {
           deque.addAll(stack)
           stack.clear()
         }
         handle
-      } else {
+      case handle =>
         stack.addFirst(handle)
         this.dequeue()
-      }
-    } else {
-      handle
     }
   }
   

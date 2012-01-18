@@ -1,12 +1,12 @@
-package iron9light.erla.akka.dispatch
+package akka.dispatch
+package erla
 
 import annotation.tailrec
-import akka.dispatch._
 import java.util.{ArrayDeque, Deque}
 import java.util.concurrent.ConcurrentLinkedDeque
-import collection.immutable.Stack
 import com.typesafe.config.Config
-import akka.actor.{AutoReceivedMessage, Actor, ActorRef, ActorContext}
+import akka.actor._
+import iron9light.erla.akka.ErlActor
 
 
 /**
@@ -15,33 +15,26 @@ import akka.actor.{AutoReceivedMessage, Actor, ActorRef, ActorContext}
 
 class ErlaMailbox(config: Config) extends MailboxType {
   override def create(receiver: ActorContext) = {
-    try {
-      def actorHack = receiver.self.asInstanceOf[ {
-        def underlying: {
-          def hotswap: Stack[PartialFunction[Any, Unit]]
-          def actor: {
-            def receive: Actor.Receive
-          }
-        }
-      }].underlying
-      actorHack
+    if(receiver.self.isInstanceOf[LocalActorRef]) {
+      val localActorRef = receiver.self.asInstanceOf[LocalActorRef]
 
-      new CustomMailbox(receiver) with DequeBasedMessageQueue with UnboundedDequeMessageQueueSemantics with DefaultSystemMessageQueue {
+      new Mailbox(receiver.asInstanceOf[ActorCell]) with DequeBasedMessageQueue with UnboundedDequeMessageQueueSemantics with DefaultSystemMessageQueue {
         final val deque: Deque[Envelope] = new ConcurrentLinkedDeque
 
         final protected val stack = new ArrayDeque[Envelope]
 
-        def hotswap = actorHack.hotswap
+        private[this] lazy val isErla = localActorRef.underlying.actor.isInstanceOf[ErlActor]
         final protected def isDefinedAt(message: Any) = {
-          if (hotswap.nonEmpty) {
-            hotswap.head.isDefinedAt(message)
+          if(isErla) {
+            val erlActor = localActorRef.underlying.actor.asInstanceOf[ErlActor]
+            erlActor.isDefinedAt(message)
           } else {
-            actorHack.actor.receive.isDefinedAt(message)
+            true
           }
         }
       }
-    } catch {
-      case _ => UnboundedMailbox().create(receiver)
+    } else {
+      UnboundedMailbox().create(receiver)
     }
   }
 }

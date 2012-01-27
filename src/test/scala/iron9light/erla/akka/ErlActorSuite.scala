@@ -59,6 +59,7 @@ class ErlActorSuite extends FunSuite {
       def act() = {
         println("actor A started")
         val msg = "hello"
+        import akka.pattern.ask
         val replied = await(actorB ? msg)
         println(replied)
         replied match {

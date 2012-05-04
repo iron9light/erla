@@ -36,10 +36,10 @@ erla code:
     }.start()
 ```
 
-erla(akka version) code:
+erla(akka2 version) code:
 
 ```scala
-    val actor = Actor.actorOf(new ErlActor {
+    val actor = system.actorOf(Props(new ErlActor {
       def act() = {
         val number = react {
           case i: Int => i
@@ -51,5 +51,5 @@ erla(akka version) code:
         }
         println("got other: %s" format other)
       }
-    }).start()
+    }))
 ```

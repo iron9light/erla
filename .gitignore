@@ -4,3 +4,4 @@ target/
 # IntelliJ IDEA
 .idea/
 *.iml
+atlassian-ide-plugin.xml

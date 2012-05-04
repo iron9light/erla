@@ -2,25 +2,23 @@ package iron9light.erla.akka
 
 import util.continuations._
 import akka.dispatch.Future
-import akka.actor.Actor
+import akka.actor.{Stash, Actor}
 
 /**
  * @author il
- * @version 12/6/11 12:00 AM
  */
 
-trait ErlActor extends Actor {
+trait ErlActor extends Actor with Stash {
   def react[T](handler: PartialFunction[Any, T]): T@suspendable = {
     shift[T, Unit, Unit] {
       cont: (T => Unit) => {
-        context.become(new PartialFunction[Any, Unit] {
-          def isDefinedAt(x: Any) = handler.isDefinedAt(x)
-
-          def apply(x: Any) {
-            cont(handler(x))
-          }
-        })
-        _isDefinedAt = handler.isDefinedAt
+        context.become {
+          case msg if handler.isDefinedAt(msg) =>
+            unstashAll()
+            cont(handler(msg))
+          case _ =>
+            stash()
+        }
       }
     }
   }
@@ -34,9 +32,12 @@ trait ErlActor extends Actor {
   def receive = {
     case `Spawn` =>
       reset[Unit, Unit] {
+        unstashAll()
         act()
         context.stop(self)
       }
+    case _ =>
+      stash()
   }
 
   def await[T](future: Future[T]): T@suspendable = {
@@ -58,8 +59,4 @@ trait ErlActor extends Actor {
         }
     }
   }
-  
-  private[this] var _isDefinedAt: Any => Boolean = Spawn == _
-
-  def isDefinedAt(message: Any) = _isDefinedAt(message)
 }

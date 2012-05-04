@@ -46,7 +46,7 @@ class ErlActorSuite extends FunSuite {
 
   test("try await") {
     val system = ActorSystem("TestSystem")
-    implicit val timeout = system.settings.ActorTimeout
+    implicit val timeout = system.settings.CreationTimeout
     val actorB = system.actorOf(Props(new Actor{
       def receive = {
         case x =>

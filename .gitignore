@@ -1,7 +1,23 @@
-# Maven
+*.class
+*.log
+
+# sbt specific
+dist/*
 target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Scala-IDE specific
+.scala_dependencies
 
 # IntelliJ IDEA
 .idea/
 *.iml
 atlassian-ide-plugin.xml
+
+# Eclipse
+.project
+.classpath
+.cache

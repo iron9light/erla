@@ -1,21 +1,22 @@
-package iron9light.erla.akka
+package iron9light.util.erla
 
 import util.continuations._
-import akka.dispatch.Future
 import akka.actor.{Stash, Actor}
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 /**
  * @author il
  */
-
-trait Erla {this: Actor with Stash =>
-  def react[T](hander: PartialFunction[Any, T]): T@suspendable = {
+trait Erla {
+  this: Actor with Stash =>
+  def react[T](handler: PartialFunction[Any, T]): T@suspendable = {
     shift[T, Unit, Unit] {
       cont: (T => Unit) => {
         context.become {
-          case msg if hander.isDefinedAt(msg) =>
+          case msg if handler.isDefinedAt(msg) =>
             unstashAll()
-            cont(hander(msg))
+            cont(handler(msg))
           case _ =>
             stash()
         }
@@ -26,18 +27,18 @@ trait Erla {this: Actor with Stash =>
   def await[T](future: Future[T]): T@suspendable = {
     val o = new AnyRef
     future.value match {
-      case Some(Right(x)) =>
+      case Some(Success(x)) =>
         x
-      case Some(Left(e)) =>
+      case Some(Failure(e)) =>
         throw e
       case None =>
         future.onComplete {
-          x => self !(o, x)
-        }
+          x => self ! (o, x)
+        }(this.context.dispatcher)
         react {
-          case (`o`, Right(x: T)) =>
+          case (`o`, Success(x: T)) =>
             () => x
-          case (`o`, Left(e: Throwable)) =>
+          case (`o`, Failure(e)) =>
             () => throw e
         }.apply()
     }

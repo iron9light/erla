@@ -1,8 +1,6 @@
-package iron9light.erla.akka
+package iron9light.util.erla
 
 import org.scalatest.FunSuite
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
 import akka.actor.{Props, ActorSystem, Actor}
 
 /**
@@ -10,7 +8,6 @@ import akka.actor.{Props, ActorSystem, Actor}
  * @version 12/6/11 12:14 AM
  */
 
-@RunWith(classOf[JUnitRunner])
 class ErlActorSuite extends FunSuite {
   test("smoking") {
     val system = ActorSystem("TestSystem")
@@ -47,10 +44,10 @@ class ErlActorSuite extends FunSuite {
   test("try await") {
     val system = ActorSystem("TestSystem")
     implicit val timeout = system.settings.CreationTimeout
-    val actorB = system.actorOf(Props(new Actor{
+    val actorB = system.actorOf(Props(new Actor {
       def receive = {
         case x =>
-          sender ! ("got it", x)
+          sender !("got it", x)
           println("actor B reply " + x)
       }
     }))

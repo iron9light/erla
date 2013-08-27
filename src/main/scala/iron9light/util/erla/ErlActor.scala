@@ -2,7 +2,7 @@ package iron9light.util.erla
 
 import util.continuations._
 import akka.actor.{Stash, Actor}
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 /**
@@ -24,7 +24,7 @@ trait Erla {
     }
   }
 
-  def await[T](future: Future[T]): T@suspendable = {
+  def await[T](future: Future[T])(implicit executor: ExecutionContext = context.dispatcher): T@suspendable = {
     val o = new AnyRef
     future.value match {
       case Some(Success(x)) =>
@@ -34,7 +34,7 @@ trait Erla {
       case None =>
         future.onComplete {
           x => self ! (o, x)
-        }(this.context.dispatcher)
+        }
         react {
           case (`o`, Success(x: T)) =>
             () => x
@@ -58,9 +58,15 @@ trait ErlActor extends Actor with Stash with Erla {
 
   def act(): Unit@suspendable
 
-  private object Spawn
+  import ErlActor.Spawn
 
   self ! Spawn
+
+  override def postRestart(reason: Throwable): Unit = {
+    super.postRestart(reason)
+
+    self ! Spawn
+  }
 
   def receive = {
     case `Spawn` =>
@@ -77,4 +83,8 @@ trait ErlActor extends Actor with Stash with Erla {
     autoStop = false
     context.become(handler)
   }
+}
+
+object ErlActor {
+  private object Spawn
 }

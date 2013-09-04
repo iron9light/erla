@@ -44,7 +44,7 @@ trait Erla {
     }
   }
 
-  def erlAct(act: => Unit@suspendable) {
+  def erlAct(act: => Any@suspendable) {
     reset[Unit, Unit] {
       context.become(Map.empty, false)
       act

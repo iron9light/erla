@@ -3,7 +3,7 @@ package iron9light.util.erla
 import util.continuations._
 import akka.actor.{Stash, Actor}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Try, Failure, Success}
 
 /**
  * @author il
@@ -21,6 +21,24 @@ trait Erla {
             stash()
         }
       }
+    }
+  }
+
+  def tryAwait[T](future: Future[T])(implicit executor: ExecutionContext = context.dispatcher): Try[T]@suspendable = {
+    val o = new AnyRef
+    future.value match {
+      case Some(Success(x)) =>
+        Success(x)
+      case Some(Failure(e)) =>
+        Failure(e)
+      case None =>
+        future.onComplete {
+          x => self ! (o, x)
+        }
+        react {
+          case (`o`, x: Try[T]) =>
+            x
+        }
     }
   }
 

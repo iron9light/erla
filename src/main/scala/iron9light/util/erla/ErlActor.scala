@@ -62,12 +62,6 @@ trait ErlActor extends Actor with Stash with Erla {
 
   self ! Spawn
 
-  override def postRestart(reason: Throwable): Unit = {
-    super.postRestart(reason)
-
-    self ! Spawn
-  }
-
   def receive = {
     case `Spawn` =>
       reset[Unit, Unit] {

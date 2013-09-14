@@ -1,15 +1,17 @@
 package iron9light.util.erla
 
 import util.continuations._
-import akka.actor.{Stash, Actor}
+import akka.actor.{UnrestrictedStash, Stash, Actor}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Try, Failure, Success}
+import scala.concurrent.duration.{FiniteDuration, Duration}
+import java.util.concurrent.TimeoutException
 
 /**
  * @author il
  */
 trait Erla {
-  this: Actor with Stash =>
+  this: Actor with UnrestrictedStash =>
   def react[T](handler: PartialFunction[Any, T]): T@suspendable = {
     shift[T, Unit, Unit] {
       cont: (T => Unit) => {
@@ -24,16 +26,30 @@ trait Erla {
     }
   }
 
-  def tryAwait[T](future: Future[T])(implicit executor: ExecutionContext = context.dispatcher): Try[T]@suspendable = {
-    val o = new AnyRef
+  def tryAwait[T](future: Future[T])(implicit timeout: Duration = Duration.Inf, executor: ExecutionContext = context.dispatcher): Try[T]@suspendable = {
     future.value match {
-      case Some(Success(x)) =>
-        Success(x)
-      case Some(Failure(e)) =>
-        Failure(e)
+      case Some(x) =>
+        x
       case None =>
-        future.onComplete {
-          x => self ! (o, x)
+        val o = new AnyRef
+        timeout match {
+          case finiteTimeout: FiniteDuration =>
+            val f = context.system.scheduler.scheduleOnce(
+              finiteTimeout,
+              self,
+              (o, Failure(new TimeoutException("await timeout")))
+            )
+            future.onComplete {
+              x =>
+                if (f.cancel()) {
+                  self !(o, x)
+                }
+            }
+          case _: Duration.Infinite =>
+            future.onComplete {
+              x =>
+                self !(o, x)
+            }
         }
         react {
           case (`o`, x: Try[T]) =>
@@ -42,36 +58,25 @@ trait Erla {
     }
   }
 
-  def await[T](future: Future[T])(implicit executor: ExecutionContext = context.dispatcher): T@suspendable = {
-    val o = new AnyRef
-    future.value match {
-      case Some(Success(x)) =>
+  def await[T](future: Future[T])(implicit timeout: Duration = Duration.Inf, executor: ExecutionContext = context.dispatcher): T@suspendable = {
+    tryAwait(future) match {
+      case Success(x) =>
         x
-      case Some(Failure(e)) =>
+      case Failure(e) =>
         throw e
-      case None =>
-        future.onComplete {
-          x => self ! (o, x)
-        }
-        react {
-          case (`o`, Success(x: T)) =>
-            () => x
-          case (`o`, Failure(e)) =>
-            () => throw e
-        }.apply()
     }
   }
 
   def erlAct(act: => Any@suspendable) {
     reset[Unit, Unit] {
-      context.become(Map.empty, false)
+      context.become(Map.empty, discardOld = false)
       act
       context.unbecome()
     }
   }
 }
 
-trait ErlActor extends Actor with Stash with Erla {
+trait ErlActor extends Stash with Erla {
   private[this] var autoStop = true
 
   def act(): Unit@suspendable
@@ -98,5 +103,7 @@ trait ErlActor extends Actor with Stash with Erla {
 }
 
 object ErlActor {
+
   private object Spawn
+
 }

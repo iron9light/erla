@@ -11,7 +11,7 @@ import java.util.concurrent.TimeoutException
  * @author il
  */
 trait Erla {
-  this: Actor with UnrestrictedStash =>
+  this: UnrestrictedStash =>
   def react[T](handler: PartialFunction[Any, T]): T@suspendable = {
     shift[T, Unit, Unit] {
       cont: (T => Unit) => {

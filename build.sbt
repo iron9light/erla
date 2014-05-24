@@ -16,4 +16,4 @@ autoCompilerPlugins := true
 libraryDependencies +=
   compilerPlugin("org.scala-lang.plugins" % "continuations" % scalaVersion.value)
 
-scalacOptions += "-P:continuations:enable"
+scalacOptions ++= Seq("-P:continuations:enable", "–optimise", "-target:jvm-1.7")

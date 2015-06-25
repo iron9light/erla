@@ -2,18 +2,12 @@ name := "erla"
 
 organization := "iron9light.util"
 
-version := "0.1-SNAPSHOT"
+version := "0.2-SNAPSHOT"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.11.7"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-actor" % "2.3.6",
-  "org.scalatest" %% "scalatest" % "2.2.2" % "test"
+  "com.typesafe.akka" %% "akka-actor" % "2.3.11",
+  "org.scala-lang.modules" %% "scala-async" % "0.9.2",
+  "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 )
-
-autoCompilerPlugins := true
-
-libraryDependencies +=
-  compilerPlugin("org.scala-lang.plugins" % "continuations" % scalaVersion.value)
-
-scalacOptions ++= Seq("-P:continuations:enable", "–optimise", "-target:jvm-1.7")

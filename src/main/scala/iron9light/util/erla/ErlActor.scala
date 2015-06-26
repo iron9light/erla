@@ -11,8 +11,6 @@ import scala.util.{Failure, Try}
 /**
  * @author il
  */
-private[erla] case class JustRun(action: Runnable)
-
 trait Erla {
   this: UnrestrictedStash =>
 
@@ -30,15 +28,13 @@ trait Erla {
     override def reportFailure(cause: Throwable) = ???
 
     override def execute(runnable: Runnable) = {
-      self ! JustRun(runnable)
+      runnable.run()
     }
   }
 
   def react[T](handler: PartialFunction[Any, T]): Future[T] = {
     val promise = Promise[T]()
     context.become {
-      case JustRun(action) =>
-        action.run()
       case msg if handler.isDefinedAt(msg) =>
         unstashAll()
         promise.complete(Try(handler(msg)))
@@ -77,8 +73,6 @@ trait Erla {
     }
     val promise = Promise[T]()
     context.become {
-      case JustRun(action) =>
-        action.run()
       case (`o`, x: Try[T]) =>
         unstashAll()
         promise.complete(x)
